@@ -1,9 +1,14 @@
 <template>
-  <div class="space-y-6">
-    <h2 class="text-2xl font-semibold text-slate-800">Logistics</h2>
+  <div class="space-y-8 animate-fade-in">
+    <div>
+      <h2 class="text-2xl font-bold text-slate-800">Logistics & delivery</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Choose where goods should land and the commercial terms that apply.
+      </p>
+    </div>
 
     <div class="flex flex-col space-y-2">
-      <label class="text-sm font-medium text-slate-600" for="dest">Destination country</label>
+      <label class="text-sm font-semibold text-slate-700" for="dest">Destination country</label>
       <Select
         id="dest"
         v-model="state.logistics.destination"
@@ -16,9 +21,10 @@
     </div>
 
     <div class="flex flex-col space-y-2">
-      <label class="text-sm font-medium text-slate-600">Incoterm</label>
+      <label class="text-sm font-semibold text-slate-700">Incoterm</label>
       <SelectButton
         v-model="state.logistics.incoterm"
+        class="w-full"
         :options="incoterms"
         option-label="label"
         option-value="value"

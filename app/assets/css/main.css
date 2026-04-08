@@ -11,3 +11,60 @@ html,
 body {
   @apply bg-vn-ice text-vn-navy antialiased;
 }
+
+@layer components {
+  /* Global fallbacks for PrimeVue inputs to ensure they never look broken */
+  .p-inputtext,
+  .p-textarea,
+  .p-dropdown,
+  .p-inputnumber-input,
+  .p-datepicker-input {
+    @apply w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-slate-800 shadow-sm transition-colors;
+  }
+
+  .p-inputtext:focus,
+  .p-textarea:focus,
+  .p-dropdown:focus,
+  .p-inputnumber-input:focus,
+  .p-datepicker-input:focus {
+    @apply border-cyan-500 outline-none ring-1 ring-cyan-500;
+  }
+
+  .p-dropdown {
+    @apply flex items-center justify-between;
+  }
+
+  /* PrimeVue 4 Select (preferred); Dropdown extends Select and uses the same root */
+  .p-select {
+    @apply flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-800 shadow-sm transition-colors;
+  }
+
+  .p-select.p-inputwrapper-focus,
+  .p-select:focus-within {
+    @apply border-cyan-500 ring-1 ring-cyan-500;
+  }
+
+  .p-inputnumber {
+    @apply w-full;
+  }
+
+  .p-datepicker {
+    @apply w-full;
+  }
+
+  .p-fileupload-advanced {
+    @apply overflow-hidden rounded-md border border-slate-300 bg-white shadow-sm;
+  }
+
+  .p-fileupload-content {
+    @apply min-h-[5rem] border-t border-slate-200 bg-slate-50/80;
+  }
+
+  .p-selectbutton {
+    @apply flex w-full flex-wrap gap-2;
+  }
+
+  .p-button {
+    @apply transition-all duration-200 ease-in-out;
+  }
+}

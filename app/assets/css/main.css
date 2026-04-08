@@ -1,0 +1,13 @@
+@import 'primeicons/primeicons.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Global base styles — professional B2B feel; component-level polish lands in Phase 2+.
+ */
+html,
+body {
+  @apply bg-vn-ice text-vn-navy antialiased;
+}

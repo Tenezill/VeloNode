@@ -1,39 +1,36 @@
 <template>
-  <div class="space-y-4">
-    <div>
-      <label class="mb-1 block text-sm font-medium text-vn-slate" for="destination">Destination country</label>
+  <div class="space-y-6">
+    <h2 class="text-2xl font-semibold text-slate-800">Logistics</h2>
+
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-medium text-slate-600" for="dest">Destination country</label>
       <Select
-        id="destination"
+        id="dest"
         v-model="state.logistics.destination"
+        class="w-full"
         :options="countries"
         option-label="label"
         option-value="value"
-        class="w-full"
-        :invalid="showFieldErrors && !state.logistics.destination"
-        placeholder="Select destination"
+        placeholder="Select country"
       />
-      <small v-if="showFieldErrors && !state.logistics.destination" class="mt-1 block text-red-500">
-        Destination is required.
-      </small>
     </div>
 
-    <div>
-      <label class="mb-2 block text-sm font-medium text-vn-slate">Incoterm</label>
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-medium text-slate-600">Incoterm</label>
       <SelectButton
         v-model="state.logistics.incoterm"
         :options="incoterms"
         option-label="label"
         option-value="value"
       />
-      <small v-if="showFieldErrors && !state.logistics.incoterm" class="mt-1 block text-red-500">
-        Select EXW, FOB, or DDP.
-      </small>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const { state, showFieldErrors } = useRfqWizard()
+import { useRfqWizard } from '~/composables/useRfqWizard'
+
+const { state } = useRfqWizard()
 
 const countries = [
   { label: 'Germany', value: 'DE' },

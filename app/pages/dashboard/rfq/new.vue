@@ -1,203 +1,60 @@
 <template>
-  <div ref="wizardRoot" class="mx-auto max-w-6xl">
-    <div class="mb-6">
-      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-vn-slate-light">
-        Buyer dashboard
-      </p>
-      <h1 class="mt-2 text-3xl font-semibold text-vn-navy">New RFQ</h1>
-      <p class="mt-2 text-vn-slate">
-        Use the wizard to capture identity, specs, pricing, and logistics in a structured format.
-      </p>
+  <div class="mx-auto max-w-4xl p-6">
+    <div class="mb-8 flex flex-wrap gap-4 border-b border-slate-200 pb-4 text-sm text-slate-500">
+      <div :class="{ 'font-bold text-cyan-600': state.currentStep === 1 }">1. Identity</div>
+      <div :class="{ 'font-bold text-cyan-600': state.currentStep === 2 }">2. Technical</div>
+      <div :class="{ 'font-bold text-cyan-600': state.currentStep === 3 }">3. Commercial</div>
+      <div :class="{ 'font-bold text-cyan-600': state.currentStep === 4 }">4. Logistics</div>
+      <div :class="{ 'font-bold text-cyan-600': state.currentStep === 5 }">5. Review</div>
     </div>
 
-    <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <section class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-        <div class="pointer-events-none select-none">
-          <Steps :model="stepItems" :active-step="activeIndex" readonly />
-        </div>
+    <div class="rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
+      <Step1Identity v-if="state.currentStep === 1" />
+      <Step2Tech v-if="state.currentStep === 2" />
+      <Step3Commercial v-if="state.currentStep === 3" />
+      <Step4Logistics v-if="state.currentStep === 4" />
+      <Step5Review v-if="state.currentStep === 5" />
+    </div>
 
-        <div class="pointer-events-none mt-4 flex flex-wrap gap-2 select-none">
-          <span
-            v-for="(item, index) in stepItems"
-            :key="item.label"
-            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs"
-            :class="stepPillClass(index)"
-          >
-            <i v-if="isStepCompleted(index)" class="pi pi-check text-[10px]" />
-            <span>{{ index + 1 }}. {{ item.label }}</span>
-          </span>
-        </div>
-
-        <div class="relative z-10 mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 isolate">
-          <h2 class="text-lg font-semibold text-vn-navy">{{ activeStepMeta.title }}</h2>
-          <p class="mt-1 text-sm text-vn-slate">{{ activeStepMeta.description }}</p>
-
-          <div class="mt-5 min-h-[12rem]">
-            <Step1Identity v-if="state.currentStep === 1" />
-            <Step2Tech v-else-if="state.currentStep === 2" />
-            <Step3Commercial v-else-if="state.currentStep === 3" />
-            <Step4Logistics v-else-if="state.currentStep === 4" />
-            <Step5Review v-else />
-          </div>
-        </div>
-
-        <div class="relative z-20 mt-6 border-t border-slate-200/70 bg-white pt-4">
-          <div class="flex items-center justify-between gap-3">
-            <Button
-              label="Back"
-              severity="secondary"
-              :disabled="state.currentStep === 1 || isSubmitting"
-              @click="handlePrev"
-            />
-            <Button
-              v-if="state.currentStep < maxStep"
-              :label="state.currentStep === 4 ? 'Review' : 'Next'"
-              icon="pi pi-arrow-right"
-              icon-pos="right"
-              :disabled="isSubmitting"
-              @click="handleNext"
-            />
-            <div v-else class="text-sm text-vn-slate-light">Use “Publish RFQ” above to submit.</div>
-          </div>
-        </div>
-      </section>
-
-      <aside class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-        <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-vn-slate-light">Contextual tips</h3>
-        <ul class="mt-4 space-y-2">
-          <li v-for="tip in activeStepMeta.tips" :key="tip" class="rounded-xl bg-vn-ice p-3 text-sm text-vn-slate">
-            {{ tip }}
-          </li>
-        </ul>
-      </aside>
+    <div class="mt-6 flex items-center justify-between gap-4">
+      <div>
+        <Button
+          v-if="state.currentStep > 1"
+          label="Back"
+          severity="secondary"
+          @click="prevStep"
+        />
+      </div>
+      <div class="flex gap-2">
+        <Button
+          v-if="state.currentStep < 5"
+          label="Next Step"
+          class="border-0 bg-cyan-500 text-white hover:bg-cyan-600"
+          @click="nextStep"
+        />
+        <Button
+          v-if="state.currentStep === 5"
+          label="Publish RFQ"
+          class="border-0 bg-cyan-500 text-white hover:bg-cyan-600"
+          @click="publishRfq"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useToast } from 'primevue/usetoast'
+import Step1Identity from '~/components/rfq/Step1Identity.vue'
+import Step2Tech from '~/components/rfq/Step2Tech.vue'
+import Step3Commercial from '~/components/rfq/Step3Commercial.vue'
+import Step4Logistics from '~/components/rfq/Step4Logistics.vue'
+import Step5Review from '~/components/rfq/Step5Review.vue'
+import { useRfqWizard } from '~/composables/useRfqWizard'
 
 definePageMeta({
   layout: 'buyer',
   middleware: ['buyer'],
 })
 
-const wizardRoot = ref<HTMLElement | null>(null)
-const toast = useToast()
-
-const {
-  state,
-  showFieldErrors,
-  showReviewErrors,
-  isSubmitting,
-  maxStep,
-  stepItems,
-  activeIndex,
-  activeStepMeta,
-  validateCurrentStep,
-  nextStep,
-  prevStep,
-  isStepCompleted,
-} = useRfqWizard()
-
-function handleNext() {
-  if (!validateCurrentStep()) {
-    showFieldErrors.value = true
-    toast.add({
-      severity: 'error',
-      summary: 'Step incomplete',
-      detail: 'Please fill in all required fields before continuing.',
-      life: 4000,
-    })
-    focusFirstInvalidField()
-    return
-  }
-  showFieldErrors.value = false
-  showReviewErrors.value = false
-  nextStep()
-}
-
-function handlePrev() {
-  showFieldErrors.value = false
-  showReviewErrors.value = false
-  prevStep()
-}
-
-watch(
-  () => state.value.currentStep,
-  () => {
-    showFieldErrors.value = false
-  },
-)
-
-function stepPillClass(index: number) {
-  if (index === activeIndex.value) {
-    return 'border-cyan-500 bg-cyan-50 text-cyan-700'
-  }
-  if (index < activeIndex.value) {
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-  }
-  return 'border-slate-200 bg-white text-slate-500'
-}
-
-function isTextEntryElement(el: EventTarget | null) {
-  const node = el as HTMLElement | null
-  if (!node) return false
-  if (node.closest('textarea')) return true
-  if (node.closest('[contenteditable="true"]')) return true
-  const input = node.closest('input')
-  if (input) {
-    const t = (input as HTMLInputElement).type
-    if (
-      t === 'text' ||
-      t === 'search' ||
-      t === 'email' ||
-      t === 'number' ||
-      t === 'tel' ||
-      t === 'url' ||
-      t === ''
-    ) {
-      return true
-    }
-  }
-  if (node.closest('.p-select-overlay') || node.closest('[data-pc-section="panel"]')) return true
-  return false
-}
-
-function focusFirstInvalidField() {
-  nextTick(() => {
-    const root = wizardRoot.value
-    if (!root) return
-    const selector = '.p-invalid, [aria-invalid="true"], input:invalid, textarea:invalid, .text-red-500'
-    const invalidEl = root.querySelector(selector) as HTMLElement | null
-    if (!invalidEl) return
-    invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    if (typeof invalidEl.focus === 'function') invalidEl.focus()
-  })
-}
-
-function onGlobalKeydown(event: KeyboardEvent) {
-  if (isSubmitting.value) return
-  if (isTextEntryElement(event.target)) return
-  if (event.key !== 'Enter') return
-
-  if (event.shiftKey) {
-    event.preventDefault()
-    prevStep()
-    return
-  }
-
-  if (state.value.currentStep < maxStep) {
-    event.preventDefault()
-    handleNext()
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('keydown', onGlobalKeydown)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onGlobalKeydown)
-})
+const { state, nextStep, prevStep, publishRfq } = useRfqWizard()
 </script>

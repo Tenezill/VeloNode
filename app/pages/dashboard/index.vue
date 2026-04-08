@@ -48,8 +48,8 @@
 
 <script setup lang="ts">
 definePageMeta({
-  middleware: ['buyer'],
   layout: 'buyer',
+  middleware: ['buyer'],
 })
 
 const auth = useAuthStore()

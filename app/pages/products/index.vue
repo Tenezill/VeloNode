@@ -174,6 +174,7 @@ definePageMeta({
   layout: 'buyer',
 })
 
+const route = useRoute()
 const filtersOpen = ref(false)
 
 const { categories, query, filtered, getCategoryLabel } = useCatalog()
@@ -181,4 +182,12 @@ const { categories, query, filtered, getCategoryLabel } = useCatalog()
 const categoryOptions = computed(() => [
   ...categories.value.map((c) => ({ label: c.label, value: c.id })),
 ])
+
+// Support deep-linking into a filtered view (e.g. from homepage category tiles).
+watchEffect(() => {
+  const category = route.query.category
+  if (typeof category === 'string' && category) {
+    query.categoryId = category
+  }
+})
 </script>

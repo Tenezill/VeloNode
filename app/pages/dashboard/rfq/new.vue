@@ -1,112 +1,77 @@
 <template>
-  <div class="mx-auto max-w-3xl">
-    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-vn-slate-light">
-      Buyer dashboard
-    </p>
-    <h1 class="mt-2 text-3xl font-semibold text-vn-navy">
-      New RFQ
-    </h1>
-    <p class="mt-2 text-vn-slate">
-      Provide enough detail for factories to quote accurately: target price, volume, and engineering files.
-    </p>
+  <div ref="wizardRoot" class="mx-auto max-w-6xl">
+    <div class="mb-6">
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-vn-slate-light">
+        Buyer dashboard
+      </p>
+      <h1 class="mt-2 text-3xl font-semibold text-vn-navy">New RFQ</h1>
+      <p class="mt-2 text-vn-slate">
+        Use the wizard to capture identity, specs, pricing, and logistics in a structured format.
+      </p>
+    </div>
 
-    <form class="mt-8 space-y-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm" @submit.prevent="submit">
-      <div class="grid gap-5 md:grid-cols-2">
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-vn-slate" for="targetPrice">Target price (EUR)</label>
-          <InputNumber
-            id="targetPrice"
-            v-model="targetPriceEur"
-            class="w-full"
-            :min="0"
-            :use-grouping="false"
-            placeholder="e.g. 2.40"
-            mode="decimal"
-            :min-fraction-digits="2"
-            :max-fraction-digits="4"
-          />
+    <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <section class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <Steps :model="stepItems" :active-step="activeStep" readonly />
+
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span
+            v-for="(item, index) in stepItems"
+            :key="item.label"
+            class="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs"
+            :class="stepPillClass(index)"
+          >
+            <i v-if="isStepCompleted(index)" class="pi pi-check text-[10px]" />
+            <span>{{ index + 1 }}. {{ item.label }}</span>
+          </span>
         </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium text-vn-slate" for="volume">Annual volume (units)</label>
-          <InputNumber
-            id="volume"
-            v-model="annualVolume"
-            class="w-full"
-            :min="1"
-            :use-grouping="false"
-            placeholder="e.g. 20000"
-          />
-        </div>
-      </div>
+        <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6">
+          <h2 class="text-lg font-semibold text-vn-navy">{{ activeStepMeta.title }}</h2>
+          <p class="mt-1 text-sm text-vn-slate">{{ activeStepMeta.description }}</p>
 
-      <div class="space-y-2">
-        <label class="text-sm font-medium text-vn-slate" for="notes">Notes for factory</label>
-        <Textarea
-          id="notes"
-          v-model="notes"
-          class="w-full"
-          rows="6"
-          auto-resize
-          placeholder="Materials, tolerance, finish, packaging, Incoterms, required certifications…"
-        />
-      </div>
-
-      <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <label class="text-sm font-medium text-vn-slate">Blueprints / CAD / PDFs</label>
-          <span class="text-xs text-vn-slate-light">{{ files.length }} file(s) selected</span>
+          <div class="mt-5">
+            <Step1Identity v-if="activeStep === 0" :payload="rfqPayload" :show-errors="showErrors" />
+            <Step2Tech v-else-if="activeStep === 1" :payload="rfqPayload" :show-errors="showErrors" />
+            <Step3Commercial v-else-if="activeStep === 2" :payload="rfqPayload" :show-errors="showErrors" />
+            <Step4Logistics v-else-if="activeStep === 3" :payload="rfqPayload" :show-errors="showErrors" />
+            <Step5Review
+              v-else
+              :payload="rfqPayload"
+              :publishing="publishing"
+              @publish="publishRfq"
+            />
+          </div>
         </div>
 
-        <FileUpload
-          mode="advanced"
-          :multiple="true"
-          :auto="false"
-          custom-upload
-          choose-label="Choose files"
-          upload-label="Attach"
-          cancel-label="Clear"
-          accept=".pdf,.step,.stp,.iges,.igs,.dxf,.dwg,.zip"
-          :max-file-size="25_000_000"
-          @select="onSelectFiles"
-          @clear="onClearFiles"
-        >
-          <template #empty>
-            <div class="flex flex-col items-center justify-center py-10 text-center">
-              <i class="pi pi-cloud-upload text-3xl text-vn-navy" />
-              <p class="mt-4 text-sm font-medium text-vn-navy">
-                Drag & drop files here
-              </p>
-              <p class="mt-1 text-sm text-vn-slate">
-                PDF, STEP, IGES, DXF, DWG, or ZIP. Max 25MB each.
-              </p>
-            </div>
-          </template>
-        </FileUpload>
+        <div class="sticky bottom-0 z-10 mt-6 border-t border-slate-200/70 bg-white/95 px-1 pt-4 backdrop-blur">
+          <div class="flex items-center justify-between">
+            <Button label="Back" severity="secondary" :disabled="activeStep === 0 || publishing" @click="prevStep" />
+            <Button
+              v-if="activeStep < stepItems.length - 1"
+              label="Continue"
+              icon="pi pi-arrow-right"
+              :disabled="publishing"
+              @click="nextStep"
+            />
+            <div v-else class="text-sm text-vn-slate-light">Review and publish when ready.</div>
+          </div>
+        </div>
+      </section>
 
-        <Message v-if="files.length" severity="info" :closable="false" class="text-sm">
-          Files are stored locally for now (mock). When the backend is connected, these will be uploaded securely.
-        </Message>
-      </div>
-
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <NuxtLink to="/products" class="text-sm font-medium text-vn-slate hover:text-vn-navy">
-          ← Back to products
-        </NuxtLink>
-        <Button
-          type="submit"
-          label="Submit RFQ"
-          icon="pi pi-send"
-          :loading="busy"
-          :disabled="!canSubmit"
-        />
-      </div>
-    </form>
+      <aside class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.2em] text-vn-slate-light">Contextual tips</h3>
+        <ul class="mt-4 space-y-2">
+          <li v-for="tip in activeStepMeta.tips" :key="tip" class="rounded-xl bg-vn-ice p-3 text-sm text-vn-slate">
+            {{ tip }}
+          </li>
+        </ul>
+      </aside>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { FileUploadSelectEvent } from 'primevue/fileupload'
 import { useToast } from 'primevue/usetoast'
 
 definePageMeta({
@@ -114,73 +79,246 @@ definePageMeta({
   middleware: ['buyer'],
 })
 
+interface CustomAttribute {
+  key: string
+  value: string
+}
+
+interface RfqPayload {
+  title: string
+  category: string
+  summary: string
+  materials: string[]
+  files: string[]
+  technicalSpecs: string
+  ndaRequired: boolean
+  customAttributes: CustomAttribute[]
+  quantityTiers: number[]
+  targetPricePerUnit: number | null
+  massProductionDeadline: Date | null
+  sampleRequired: boolean
+  destinationCountry: string
+  incoterm: 'EXW' | 'FOB' | 'DDP' | ''
+}
+
+const activeStep = ref(0)
+const publishing = ref(false)
+const showErrors = ref(false)
+const wizardRoot = ref<HTMLElement | null>(null)
 const toast = useToast()
+const router = useRouter()
 const { api } = useApi()
 
-const targetPriceEur = ref<number | null>(null)
-const annualVolume = ref<number | null>(null)
-const notes = ref('')
-const files = ref<File[]>([])
-const busy = ref(false)
+const stepItems = [
+  { label: 'Project Identity' },
+  { label: 'Technical Data' },
+  { label: 'Commercial Terms' },
+  { label: 'Logistics' },
+  { label: 'Final Review' },
+]
 
-const canSubmit = computed(() => {
-  return Boolean(annualVolume.value && annualVolume.value > 0 && notes.value.trim())
+const rfqPayload = reactive<RfqPayload>({
+  title: '',
+  category: '',
+  summary: '',
+  materials: [],
+  files: [],
+  technicalSpecs: '',
+  ndaRequired: false,
+  customAttributes: [],
+  quantityTiers: [],
+  targetPricePerUnit: null,
+  massProductionDeadline: null,
+  sampleRequired: false,
+  destinationCountry: '',
+  incoterm: '',
 })
 
-function onSelectFiles(e: FileUploadSelectEvent) {
-  files.value = (e.files || []).slice() as File[]
+const stepMeta = [
+  {
+    title: 'Step 1: Project Identity',
+    description: 'Define RFQ intent and baseline sourcing context.',
+    tips: [
+      'Use a clear RFQ title so vendors can triage quickly.',
+      'Executive summary should state product purpose and core constraints.',
+    ],
+  },
+  {
+    title: 'Step 2: Technical Data & Blueprints',
+    description: 'Attach technical files and map custom JSONB attributes.',
+    tips: [
+      'Upload latest CAD/PDF package to reduce clarification cycles.',
+      'Custom attributes should use stable key naming conventions.',
+    ],
+  },
+  {
+    title: 'Step 3: Commercial Terms',
+    description: 'Set quantity tiers, target pricing, and production timeline.',
+    tips: [
+      'Volume tiers improve quote quality and supplier confidence.',
+      'Target pricing should include expected material quality band.',
+    ],
+  },
+  {
+    title: 'Step 4: Shipping & Logistics',
+    description: 'Define destination and trade terms for accurate landed pricing.',
+    tips: [
+      'Confirm destination early to avoid freight quote rework.',
+      'Incoterms alignment prevents disputes during fulfillment.',
+    ],
+  },
+  {
+    title: 'Step 5: Final Review',
+    description: 'Review all details before publishing to the vendor network.',
+    tips: [
+      'Validate specification consistency across all steps.',
+      'Publishing with complete data improves match quality.',
+    ],
+  },
+]
+
+const activeStepMeta = computed(() => stepMeta[activeStep.value] || stepMeta[0])
+
+function canAdvance(step: number) {
+  if (step === 0) {
+    return Boolean(rfqPayload.title.trim() && rfqPayload.category && rfqPayload.summary.trim())
+  }
+  if (step === 1) {
+    return Boolean(rfqPayload.technicalSpecs.trim() || rfqPayload.files.length)
+  }
+  if (step === 2) {
+    return Boolean(rfqPayload.quantityTiers.some((tier) => tier > 0) && rfqPayload.targetPricePerUnit)
+  }
+  if (step === 3) {
+    return Boolean(rfqPayload.destinationCountry && rfqPayload.incoterm)
+  }
+  return true
 }
 
-function onClearFiles() {
-  files.value = []
-}
-
-async function submit() {
-  if (!canSubmit.value) {
+function nextStep() {
+  if (activeStep.value >= stepItems.length - 1) return
+  if (!canAdvance(activeStep.value)) {
+    showErrors.value = true
     toast.add({
       severity: 'warn',
-      summary: 'Missing details',
-      detail: 'Please add at least volume and notes before submitting.',
-      life: 6000,
+      summary: 'Step incomplete',
+      detail: 'Please complete the required information before continuing.',
+      life: 3200,
     })
+    focusFirstInvalidField()
+    return
+  }
+  showErrors.value = false
+  activeStep.value += 1
+}
+
+function prevStep() {
+  if (activeStep.value <= 0) return
+  showErrors.value = false
+  activeStep.value -= 1
+}
+
+watch(activeStep, () => {
+  showErrors.value = false
+})
+
+function stepPillClass(index: number) {
+  if (index === activeStep.value) {
+    return 'border-cyan-500 bg-cyan-50 text-cyan-700'
+  }
+  if (index < activeStep.value) {
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+  }
+  return 'border-slate-200 bg-white text-slate-500'
+}
+
+function isStepCompleted(index: number) {
+  if (index >= activeStep.value) return false
+  return canAdvance(index)
+}
+
+function isTextEntryElement(el: EventTarget | null) {
+  const node = el as HTMLElement | null
+  if (!node) return false
+  if (node.closest('textarea')) return true
+  if (node.closest('[contenteditable="true"]')) return true
+  return false
+}
+
+function focusFirstInvalidField() {
+  nextTick(() => {
+    const root = wizardRoot.value
+    if (!root) return
+    const selector = '.p-invalid, [aria-invalid="true"], input:invalid, textarea:invalid, .text-red-500'
+    const invalidEl = root.querySelector(selector) as HTMLElement | null
+    if (!invalidEl) return
+    invalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (typeof invalidEl.focus === 'function') invalidEl.focus()
+  })
+}
+
+function onGlobalKeydown(event: KeyboardEvent) {
+  if (publishing.value) return
+  if (isTextEntryElement(event.target)) return
+  if (event.key !== 'Enter') return
+
+  if (event.shiftKey) {
+    event.preventDefault()
+    prevStep()
     return
   }
 
-  busy.value = true
+  if (activeStep.value < stepItems.length - 1) {
+    event.preventDefault()
+    nextStep()
+  }
+}
+
+async function publishRfq() {
+  if (publishing.value) return
+  if (!canAdvance(0) || !canAdvance(1) || !canAdvance(2) || !canAdvance(3)) {
+    showErrors.value = true
+    toast.add({
+      severity: 'warn',
+      summary: 'Missing details',
+      detail: 'Please complete all required steps before publishing.',
+      life: 4500,
+    })
+    focusFirstInvalidField()
+    return
+  }
+
+  publishing.value = true
   try {
     await api('/rfqs', {
       method: 'POST',
-      body: {
-        targetPriceEur: targetPriceEur.value,
-        annualVolume: annualVolume.value,
-        notes: notes.value,
-        // Files will be uploaded as multipart/form-data later.
-        attachments: files.value.map((f) => ({
-          name: f.name,
-          size: f.size,
-          type: f.type,
-        })),
-      },
+      body: rfqPayload,
       quiet: true,
     })
     toast.add({
       severity: 'success',
-      summary: 'RFQ submitted',
-      detail: 'Your request has been queued for vendor matching (mock).',
-      life: 6500,
+      summary: 'RFQ published',
+      detail: 'Your RFQ has been submitted and is queued for vendor matching.',
+      life: 4500,
     })
-    await navigateTo('/dashboard')
+    await router.push('/dashboard/rfqs')
   } catch {
     toast.add({
       severity: 'warn',
       summary: 'Offline submission',
-      detail:
-        'Backend unreachable — saved as a local mock submission for demo purposes.',
-      life: 7000,
+      detail: 'Backend unreachable — your RFQ was not published.',
+      life: 6500,
     })
-    await navigateTo('/dashboard')
   } finally {
-    busy.value = false
+    publishing.value = false
   }
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', onGlobalKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onGlobalKeydown)
+})
 </script>

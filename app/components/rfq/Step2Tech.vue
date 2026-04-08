@@ -16,11 +16,11 @@
           @clear="onClear"
         />
       </div>
-      <p v-if="payload.files.length" class="mt-2 text-xs text-slate-500">
-        {{ payload.files.length }} file(s) attached.
+      <p v-if="tech.files.length" class="mt-2 text-xs text-slate-500">
+        {{ tech.files.length }} file(s) attached.
       </p>
       <small
-        v-if="showErrors && !payload.files.length && !payload.technicalSpecs.trim()"
+        v-if="showErrors && !tech.files.length && !tech.specs.trim()"
         class="mt-1 block text-red-500"
       >
         Add at least one file or provide technical specifications.
@@ -30,17 +30,17 @@
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Technical Specifications</label>
       <Textarea
-        v-model="payload.technicalSpecs"
+        v-model="tech.specs"
         rows="6"
         auto-resize
         class="w-full"
-        :invalid="showErrors && !payload.technicalSpecs.trim() && !payload.files.length"
+        :invalid="showErrors && !tech.specs.trim() && !tech.files.length"
         placeholder="Tolerance, compliance, dimensions, critical QA checkpoints..."
       />
     </div>
 
     <div class="flex items-center gap-3">
-      <ToggleSwitch v-model="payload.ndaRequired" input-id="ndaRequired" />
+      <ToggleSwitch v-model="tech.requiresNda" input-id="ndaRequired" />
       <label for="ndaRequired" class="text-sm text-slate-700">NDA Required?</label>
     </div>
 
@@ -50,13 +50,13 @@
         <Button label="Add Custom Spec" icon="pi pi-plus" size="small" severity="secondary" @click="addAttribute" />
       </div>
 
-      <div v-if="!payload.customAttributes.length" class="text-sm text-slate-500">
+      <div v-if="!tech.customAttributes.length" class="text-sm text-slate-500">
         No custom specs added yet.
       </div>
 
       <div class="space-y-2">
         <div
-          v-for="(attribute, index) in payload.customAttributes"
+          v-for="(attribute, index) in tech.customAttributes"
           :key="`${index}-${attribute.key}`"
           class="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"
         >
@@ -70,36 +70,25 @@
 </template>
 
 <script setup lang="ts">
-interface CustomAttribute {
-  key: string
-  value: string
-}
-
-interface RfqPayload {
-  files: string[]
-  technicalSpecs: string
-  ndaRequired: boolean
-  customAttributes: CustomAttribute[]
-}
-
 const props = defineProps<{
-  payload: RfqPayload
   showErrors?: boolean
 }>()
 
+const { tech } = useRfqWizard()
+
 function onSelect(event: { files: File[] }) {
-  props.payload.files = event.files.map((file) => file.name)
+  tech.files = event.files.map((file) => file.name)
 }
 
 function onClear() {
-  props.payload.files = []
+  tech.files = []
 }
 
 function addAttribute() {
-  props.payload.customAttributes.push({ key: '', value: '' })
+  tech.customAttributes.push({ key: '', value: '' })
 }
 
 function removeAttribute(index: number) {
-  props.payload.customAttributes.splice(index, 1)
+  tech.customAttributes.splice(index, 1)
 }
 </script>

@@ -3,23 +3,23 @@
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Destination Country</label>
       <Select
-        v-model="payload.destinationCountry"
+        v-model="logistics.destination"
         :options="countries"
         option-label="label"
         option-value="value"
         class="w-full"
-        :invalid="showErrors && !payload.destinationCountry"
+        :invalid="showErrors && !logistics.destination"
         placeholder="Select destination"
       />
-      <small v-if="showErrors && !payload.destinationCountry" class="mt-1 block text-red-500">
+      <small v-if="showErrors && !logistics.destination" class="mt-1 block text-red-500">
         Destination country is required.
       </small>
     </div>
 
     <div>
       <label class="mb-2 block text-sm font-medium text-slate-700">Incoterm</label>
-      <SelectButton v-model="payload.incoterm" :options="incoterms" option-label="label" option-value="value" />
-      <small v-if="showErrors && !payload.incoterm" class="mt-1 block text-red-500">
+      <SelectButton v-model="logistics.incoterm" :options="incoterms" option-label="label" option-value="value" />
+      <small v-if="showErrors && !logistics.incoterm" class="mt-1 block text-red-500">
         Incoterm is required.
       </small>
     </div>
@@ -27,15 +27,11 @@
 </template>
 
 <script setup lang="ts">
-interface RfqPayload {
-  destinationCountry: string
-  incoterm: 'EXW' | 'FOB' | 'DDP' | ''
-}
-
 defineProps<{
-  payload: RfqPayload
   showErrors?: boolean
 }>()
+
+const { logistics } = useRfqWizard()
 
 const countries = [
   { label: 'Germany', value: 'DE' },

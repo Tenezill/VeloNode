@@ -3,7 +3,7 @@
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">RFQ Title</label>
       <InputText
-        v-model="payload.title"
+        v-model="identity.title"
         class="w-full"
         :invalid="showErrors && !payload.title.trim()"
         placeholder="e.g. OEM Motor Housing for EV Platform"
@@ -14,7 +14,7 @@
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Category</label>
       <Select
-        v-model="payload.category"
+        v-model="identity.category"
         :options="categories"
         option-label="label"
         option-value="value"
@@ -28,7 +28,7 @@
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Executive Summary</label>
       <Textarea
-        v-model="payload.summary"
+        v-model="identity.summary"
         rows="5"
         auto-resize
         class="w-full"
@@ -43,7 +43,7 @@
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Primary Material(s)</label>
       <MultiSelect
-        v-model="payload.materials"
+        v-model="identity.materials"
         :options="materials"
         class="w-full"
         display="chip"
@@ -54,23 +54,17 @@
 </template>
 
 <script setup lang="ts">
-interface RfqPayload {
-  title: string
-  category: string
-  summary: string
-  materials: string[]
-}
-
-defineProps<{
-  payload: RfqPayload
+const props = defineProps<{
   showErrors?: boolean
 }>()
+
+const { identity } = useRfqWizard()
 
 const categories = [
   { label: 'Electronics', value: 'electronics' },
   { label: 'Automotive', value: 'automotive' },
   { label: 'Industrial Hardware', value: 'industrial' },
-  { label: 'Consumer Goods', value: 'consumer' },
+      { label: 'Consumer Goods', value: 'consumer' },
 ]
 
 const materials = ['Aluminum', 'Steel', 'ABS', 'PC', 'Copper', 'Silicone', 'Brass']

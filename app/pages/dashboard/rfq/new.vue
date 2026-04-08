@@ -12,10 +12,9 @@
 
     <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
       <section class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-        <!-- Steps root can paint a large hit target; keep it from intercepting clicks meant for fields below. -->
-        <!--<div class="pointer-events-none select-none">
+        <div class="pointer-events-none select-none">
           <Steps :model="stepItems" :active-step="activeIndex" readonly />
-        </div>-->
+        </div>
 
         <div class="pointer-events-none mt-4 flex flex-wrap gap-2 select-none">
           <span
@@ -25,7 +24,7 @@
             :class="stepPillClass(index)"
           >
             <i v-if="isStepCompleted(index)" class="pi pi-check text-[10px]" />
-            <span>{{ index + 1 }}. {{ item.label }}</span>>
+            <span>{{ index + 1 }}. {{ item.label }}</span>
           </span>
         </div>
 
@@ -34,16 +33,11 @@
           <p class="mt-1 text-sm text-vn-slate">{{ activeStepMeta.description }}</p>
 
           <div class="mt-5 min-h-[12rem]">
-            <Step1Identity v-if="currentStep === 1" :show-errors="showErrors" />
-            <Step2Tech v-else-if="currentStep === 2" :show-errors="showErrors" />
-            <Step3Commercial v-else-if="currentStep === 3" :show-errors="showErrors" />
-            <Step4Logistics v-else-if="currentStep === 4" :show-errors="showErrors" />
-            <Step5Review
-              v-else
-              :publishing="publishing"
-              :show-review-errors="showReviewErrors"
-              @publish="publishRfq"
-            />
+            <Step1Identity v-if="state.currentStep === 1" />
+            <Step2Tech v-else-if="state.currentStep === 2" />
+            <Step3Commercial v-else-if="state.currentStep === 3" />
+            <Step4Logistics v-else-if="state.currentStep === 4" />
+            <Step5Review v-else />
           </div>
         </div>
 
@@ -52,18 +46,18 @@
             <Button
               label="Back"
               severity="secondary"
-              :disabled="currentStep === 1 || publishing"
+              :disabled="state.currentStep === 1 || isSubmitting"
               @click="handlePrev"
             />
             <Button
-              v-if="currentStep < maxStep"
-              label="Continue"
+              v-if="state.currentStep < maxStep"
+              :label="state.currentStep === 4 ? 'Review' : 'Next'"
               icon="pi pi-arrow-right"
               icon-pos="right"
-              :disabled="publishing"
+              :disabled="isSubmitting"
               @click="handleNext"
             />
-            <div v-else class="text-sm text-vn-slate-light">Review and publish when ready.</div>
+            <div v-else class="text-sm text-vn-slate-light">Use “Publish RFQ” above to submit.</div>
           </div>
         </div>
       </section>
@@ -88,55 +82,53 @@ definePageMeta({
   middleware: ['buyer'],
 })
 
-const publishing = ref(false)
-const showErrors = ref(false)
-const showReviewErrors = ref(false)
 const wizardRoot = ref<HTMLElement | null>(null)
 const toast = useToast()
-const router = useRouter()
-const { api } = useApi()
 
 const {
-  currentStep,
+  state,
+  showFieldErrors,
+  showReviewErrors,
+  isSubmitting,
   maxStep,
   stepItems,
   activeIndex,
   activeStepMeta,
+  validateCurrentStep,
   nextStep,
   prevStep,
-  canAdvance,
   isStepCompleted,
-  isWizardComplete,
-  toPayload,
-  resetWizard,
-} = provideRfqWizard()
+} = useRfqWizard()
 
 function handleNext() {
-  if (!canAdvance(currentStep.value)) {
-    showErrors.value = true
+  if (!validateCurrentStep()) {
+    showFieldErrors.value = true
     toast.add({
-      severity: 'warn',
+      severity: 'error',
       summary: 'Step incomplete',
-      detail: 'Please complete the required information before continuing.',
-      life: 3200,
+      detail: 'Please fill in all required fields before continuing.',
+      life: 4000,
     })
     focusFirstInvalidField()
     return
   }
-  showErrors.value = false
+  showFieldErrors.value = false
   showReviewErrors.value = false
   nextStep()
 }
 
 function handlePrev() {
-  showErrors.value = false
+  showFieldErrors.value = false
   showReviewErrors.value = false
   prevStep()
 }
 
-watch(currentStep, () => {
-  showErrors.value = false
-})
+watch(
+  () => state.value.currentStep,
+  () => {
+    showFieldErrors.value = false
+  },
+)
 
 function stepPillClass(index: number) {
   if (index === activeIndex.value) {
@@ -185,7 +177,7 @@ function focusFirstInvalidField() {
 }
 
 function onGlobalKeydown(event: KeyboardEvent) {
-  if (publishing.value) return
+  if (isSubmitting.value) return
   if (isTextEntryElement(event.target)) return
   if (event.key !== 'Enter') return
 
@@ -195,53 +187,9 @@ function onGlobalKeydown(event: KeyboardEvent) {
     return
   }
 
-  if (currentStep.value < maxStep) {
+  if (state.value.currentStep < maxStep) {
     event.preventDefault()
     handleNext()
-  }
-}
-
-async function publishRfq() {
-  if (publishing.value) return
-
-  if (!isWizardComplete()) {
-    showReviewErrors.value = true
-    showErrors.value = true
-    toast.add({
-      severity: 'warn',
-      summary: 'RFQ incomplete',
-      detail: 'Fix the items listed above, or go back to the step that needs input.',
-      life: 5500,
-    })
-    focusFirstInvalidField()
-    return
-  }
-
-  showReviewErrors.value = false
-  publishing.value = true
-  try {
-    await api('/rfqs', {
-      method: 'POST',
-      body: toPayload(),
-      quiet: true,
-    })
-    toast.add({
-      severity: 'success',
-      summary: 'RFQ published',
-      detail: 'Your RFQ has been submitted to the API and is queued for vendor matching.',
-      life: 5000,
-    })
-    resetWizard()
-    await router.push('/dashboard/rfqs')
-  } catch {
-    toast.add({
-      severity: 'warn',
-      summary: 'Could not reach API',
-      detail: 'Saved locally for demo — check that the backend is running on your API base URL.',
-      life: 7000,
-    })
-  } finally {
-    publishing.value = false
   }
 }
 

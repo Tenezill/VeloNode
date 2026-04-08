@@ -1,41 +1,64 @@
 /**
- * Buyer RFQ wizard — state is provided by the page so parent + steps share one instance.
- * (Module singletons can duplicate across Nuxt/Vite chunks, which breaks v-model + Continue.)
+ * Buyer RFQ wizard — single draft via Nuxt `useState` so every component shares one reactive source.
  */
-import type { InjectionKey } from 'vue'
+import { useToast } from 'primevue/usetoast'
 
-interface IdentityState {
-  title: string
-  category: string
-  summary: string
-  materials: string[]
+export interface RfqWizardState {
+  currentStep: number
+  identity: {
+    title: string
+    category: string
+    summary: string
+    materials: string[]
+  }
+  tech: {
+    files: string[]
+    specs: string
+    requiresNda: boolean
+  }
+  commercial: {
+    quantity: number | null
+    targetPrice: number | null
+    requiresSample: boolean
+    deadline: Date | null
+  }
+  logistics: {
+    destination: string
+    incoterm: '' | 'EXW' | 'FOB' | 'DDP'
+  }
 }
 
-interface TechAttribute {
-  key: string
-  value: string
+const STATE_KEY = 'rfq-buyer-wizard-v2'
+const UI_KEY = 'rfq-buyer-wizard-ui-v2'
+
+function initialState(): RfqWizardState {
+  return {
+    currentStep: 1,
+    identity: {
+      title: '',
+      category: '',
+      summary: '',
+      materials: [],
+    },
+    tech: {
+      files: [],
+      specs: '',
+      requiresNda: false,
+    },
+    commercial: {
+      quantity: null,
+      targetPrice: null,
+      requiresSample: false,
+      deadline: null,
+    },
+    logistics: {
+      destination: '',
+      incoterm: '',
+    },
+  }
 }
 
-interface TechState {
-  files: string[]
-  specs: string
-  requiresNda: boolean
-  customAttributes: TechAttribute[]
-}
-
-interface CommercialState {
-  quantityTiers: number[]
-  targetPrice: number | null
-  requiresSample: boolean
-  deadline: Date | null
-}
-
-interface LogisticsState {
-  destination: string
-  incoterm: 'EXW' | 'FOB' | 'DDP' | ''
-}
-
-const stepItems = [
+export const stepItems = [
   { label: 'Project Identity' },
   { label: 'Technical Data' },
   { label: 'Commercial Terms' },
@@ -54,18 +77,18 @@ const stepMeta = [
   },
   {
     title: 'Step 2: Technical Data & Blueprints',
-    description: 'Attach technical files and map custom JSONB attributes.',
+    description: 'Attach technical files and capture specifications.',
     tips: [
       'Upload latest CAD/PDF package to reduce clarification cycles.',
-      'Custom attributes should use stable key naming conventions.',
+      'You can rely on written specs if files are not ready yet.',
     ],
   },
   {
     title: 'Step 3: Commercial Terms',
-    description: 'Set volume expectations, target pricing, and timelines.',
+    description: 'Set volume, target pricing, and timelines.',
     tips: [
-      'Volume tiers improve quote quality and supplier confidence.',
-      'Target pricing should include expected material quality band.',
+      'A realistic annual quantity helps factories quote tooling and MOQ.',
+      'Target pricing should reflect expected material and finish band.',
     ],
   },
   {
@@ -86,37 +109,16 @@ const stepMeta = [
   },
 ] as const
 
-function createRfqWizard() {
-  const identity = reactive<IdentityState>({
-    title: '',
-    category: '',
-    summary: '',
-    materials: [],
-  })
+export function useRfqWizard() {
+  const state = useState<RfqWizardState>(STATE_KEY, () => initialState())
 
-  const tech = reactive<TechState>({
-    files: [],
-    specs: '',
-    requiresNda: false,
-    customAttributes: [],
-  })
+  const showFieldErrors = useState<boolean>(`${UI_KEY}-fields`, () => false)
+  const showReviewErrors = useState<boolean>(`${UI_KEY}-review`, () => false)
+  const isSubmitting = ref(false)
 
-  const commercial = reactive<CommercialState>({
-    quantityTiers: [0],
-    targetPrice: null,
-    requiresSample: false,
-    deadline: null,
-  })
-
-  const logistics = reactive<LogisticsState>({
-    destination: '',
-    incoterm: '',
-  })
-
-  const currentStep = ref(1)
   const maxStep = 5
 
-  const activeIndex = computed(() => currentStep.value - 1)
+  const activeIndex = computed(() => state.value.currentStep - 1)
   const activeStepMeta = computed(() => {
     const meta = stepMeta[activeIndex.value] || stepMeta[0]
     return {
@@ -126,119 +128,144 @@ function createRfqWizard() {
     }
   })
 
-  function canAdvance(step: number) {
-    if (step === 1) {
-      return Boolean(identity.title.trim() && identity.category && identity.summary.trim())
+  function validateStep(step: number): boolean {
+    const s = state.value
+    switch (step) {
+      case 1:
+        return Boolean(
+          s.identity.title.trim() && s.identity.category && s.identity.summary.trim(),
+        )
+      case 2:
+        return Boolean(s.tech.specs.trim() || s.tech.files.length)
+      case 3:
+        return Boolean(
+          s.commercial.quantity != null &&
+            s.commercial.quantity > 0 &&
+            s.commercial.targetPrice != null &&
+            s.commercial.targetPrice > 0,
+        )
+      case 4:
+        return Boolean(s.logistics.destination && s.logistics.incoterm)
+      default:
+        return true
     }
-    if (step === 2) {
-      return Boolean(tech.specs.trim() || tech.files.length)
-    }
-    if (step === 3) {
-      return Boolean(
-        commercial.quantityTiers.some((tier) => tier > 0) && commercial.targetPrice,
-      )
-    }
-    if (step === 4) {
-      return Boolean(logistics.destination && logistics.incoterm)
-    }
-    return true
   }
 
-  function isWizardComplete() {
-    return canAdvance(1) && canAdvance(2) && canAdvance(3) && canAdvance(4)
+  /** Validates the step the user is currently on (1–4). Step 5 uses `isWizardComplete`. */
+  function validateCurrentStep(): boolean {
+    const step = state.value.currentStep
+    if (step >= maxStep) return true
+    return validateStep(step)
+  }
+
+  function isWizardComplete(): boolean {
+    return validateStep(1) && validateStep(2) && validateStep(3) && validateStep(4)
   }
 
   function nextStep() {
-    if (currentStep.value >= maxStep) return
-    if (!canAdvance(currentStep.value)) return
-    currentStep.value += 1
+    if (state.value.currentStep >= maxStep) return
+    state.value.currentStep += 1
   }
 
   function prevStep() {
-    if (currentStep.value <= 1) return
-    currentStep.value -= 1
+    if (state.value.currentStep <= 1) return
+    state.value.currentStep -= 1
+  }
+
+  function resetWizard() {
+    state.value = initialState()
+    showFieldErrors.value = false
+    showReviewErrors.value = false
   }
 
   function isStepCompleted(index: number) {
     const stepNumber = index + 1
-    if (stepNumber >= currentStep.value) return false
-    return canAdvance(stepNumber)
+    if (stepNumber >= state.value.currentStep) return false
+    return validateStep(stepNumber)
   }
 
   function toPayload() {
+    const s = state.value
     return {
-      title: identity.title,
-      category: identity.category,
-      summary: identity.summary,
-      materials: identity.materials,
-      files: tech.files,
-      technicalSpecs: tech.specs,
-      ndaRequired: tech.requiresNda,
-      customAttributes: tech.customAttributes,
-      quantityTiers: commercial.quantityTiers,
-      targetPricePerUnit: commercial.targetPrice,
-      massProductionDeadline: commercial.deadline,
-      sampleRequired: commercial.requiresSample,
-      destinationCountry: logistics.destination,
-      incoterm: logistics.incoterm,
+      title: s.identity.title,
+      category: s.identity.category,
+      summary: s.identity.summary,
+      materials: s.identity.materials,
+      files: s.tech.files,
+      technicalSpecs: s.tech.specs,
+      ndaRequired: s.tech.requiresNda,
+      quantity: s.commercial.quantity,
+      targetPricePerUnit: s.commercial.targetPrice,
+      massProductionDeadline: s.commercial.deadline,
+      sampleRequired: s.commercial.requiresSample,
+      destinationCountry: s.logistics.destination,
+      incoterm: s.logistics.incoterm,
     }
   }
 
-  function resetWizard() {
-    identity.title = ''
-    identity.category = ''
-    identity.summary = ''
-    identity.materials = []
-    tech.files = []
-    tech.specs = ''
-    tech.requiresNda = false
-    tech.customAttributes = []
-    commercial.quantityTiers = [0]
-    commercial.targetPrice = null
-    commercial.requiresSample = false
-    commercial.deadline = null
-    logistics.destination = ''
-    logistics.incoterm = ''
-    currentStep.value = 1
+  /** Mock publish: delay + success toast + redirect (optional real API try). */
+  async function submitRfq() {
+    const toast = useToast()
+    if (isSubmitting.value) return
+
+    if (!isWizardComplete()) {
+      showReviewErrors.value = true
+      showFieldErrors.value = true
+      toast.add({
+        severity: 'error',
+        summary: 'RFQ incomplete',
+        detail: 'Complete all required steps before publishing.',
+        life: 5500,
+      })
+      return
+    }
+
+    showReviewErrors.value = false
+    isSubmitting.value = true
+    try {
+      await new Promise((r) => setTimeout(r, 900))
+
+      try {
+        const { api } = useApi()
+        await api('/rfqs', {
+          method: 'POST',
+          body: toPayload(),
+          quiet: true,
+        })
+      } catch {
+        /* mock path: ignore API failure */
+      }
+
+      toast.add({
+        severity: 'success',
+        summary: 'RFQ published',
+        detail: 'Your RFQ has been submitted to the verified network (mock + API when available).',
+        life: 5000,
+      })
+      resetWizard()
+      await navigateTo('/dashboard/rfqs')
+    } finally {
+      isSubmitting.value = false
+    }
   }
 
   return {
-    identity,
-    tech,
-    commercial,
-    logistics,
-    currentStep,
+    state,
+    showFieldErrors,
+    showReviewErrors,
+    isSubmitting,
     maxStep,
     stepItems,
     activeIndex,
     activeStepMeta,
-    canAdvance,
+    validateStep,
+    validateCurrentStep,
     isWizardComplete,
     nextStep,
     prevStep,
+    resetWizard,
     isStepCompleted,
     toPayload,
-    resetWizard,
+    submitRfq,
   }
-}
-
-export type RfqWizardApi = ReturnType<typeof createRfqWizard>
-
-export const RFQ_WIZARD_KEY: InjectionKey<RfqWizardApi> = Symbol('rfqWizard')
-
-/** Call once from `app/pages/dashboard/rfq/new.vue` setup (before child steps mount). */
-export function provideRfqWizard() {
-  const api = createRfqWizard()
-  provide(RFQ_WIZARD_KEY, api)
-  return api
-}
-
-export function useRfqWizard() {
-  const api = inject(RFQ_WIZARD_KEY)
-  if (!api) {
-    throw new Error(
-      '[useRfqWizard] Missing provider. Call provideRfqWizard() from pages/dashboard/rfq/new.vue.',
-    )
-  }
-  return api
 }

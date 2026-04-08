@@ -4,23 +4,28 @@
       <label class="mb-1 block text-sm font-medium text-vn-slate" for="destination">Destination country</label>
       <Select
         id="destination"
-        v-model="logistics.destination"
+        v-model="state.logistics.destination"
         :options="countries"
         option-label="label"
         option-value="value"
         class="w-full"
-        :invalid="showErrors && !logistics.destination"
+        :invalid="showFieldErrors && !state.logistics.destination"
         placeholder="Select destination"
       />
-      <small v-if="showErrors && !logistics.destination" class="mt-1 block text-red-500">
+      <small v-if="showFieldErrors && !state.logistics.destination" class="mt-1 block text-red-500">
         Destination is required.
       </small>
     </div>
 
     <div>
       <label class="mb-2 block text-sm font-medium text-vn-slate">Incoterm</label>
-      <SelectButton v-model="logistics.incoterm" :options="incoterms" option-label="label" option-value="value" />
-      <small v-if="showErrors && !logistics.incoterm" class="mt-1 block text-red-500">
+      <SelectButton
+        v-model="state.logistics.incoterm"
+        :options="incoterms"
+        option-label="label"
+        option-value="value"
+      />
+      <small v-if="showFieldErrors && !state.logistics.incoterm" class="mt-1 block text-red-500">
         Select EXW, FOB, or DDP.
       </small>
     </div>
@@ -28,11 +33,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  showErrors?: boolean
-}>()
-
-const { logistics } = useRfqWizard()
+const { state, showFieldErrors } = useRfqWizard()
 
 const countries = [
   { label: 'Germany', value: 'DE' },

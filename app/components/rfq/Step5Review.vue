@@ -15,21 +15,21 @@
     <div class="grid gap-3 md:grid-cols-2">
       <div class="rounded-xl bg-vn-ice/50 p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-vn-slate-light">RFQ title</p>
-        <p class="mt-1 text-sm text-vn-navy">{{ identity.title || '—' }}</p>
+        <p class="mt-1 text-sm text-vn-navy">{{ state.identity.title || '—' }}</p>
       </div>
       <div class="rounded-xl bg-vn-ice/50 p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-vn-slate-light">Category</p>
-        <p class="mt-1 text-sm text-vn-navy">{{ identity.category || '—' }}</p>
+        <p class="mt-1 text-sm text-vn-navy">{{ state.identity.category || '—' }}</p>
       </div>
       <div class="rounded-xl bg-vn-ice/50 p-4 md:col-span-2">
         <p class="text-xs font-semibold uppercase tracking-wide text-vn-slate-light">Materials</p>
         <p class="mt-1 text-sm text-vn-navy">
-          {{ identity.materials.length ? identity.materials.join(', ') : '—' }}
+          {{ state.identity.materials.length ? state.identity.materials.join(', ') : '—' }}
         </p>
       </div>
       <div class="rounded-xl bg-vn-ice/50 p-4 md:col-span-2">
         <p class="text-xs font-semibold uppercase tracking-wide text-vn-slate-light">Executive summary</p>
-        <p class="mt-1 whitespace-pre-wrap text-sm text-vn-slate">{{ identity.summary || '—' }}</p>
+        <p class="mt-1 whitespace-pre-wrap text-sm text-vn-slate">{{ state.identity.summary || '—' }}</p>
       </div>
     </div>
 
@@ -39,26 +39,16 @@
         <div class="flex flex-wrap gap-2">
           <dt class="text-vn-slate-light">Files</dt>
           <dd class="text-vn-slate">
-            {{ tech.files.length ? tech.files.join(', ') : '—' }}
+            {{ state.tech.files.length ? state.tech.files.join(', ') : '—' }}
           </dd>
         </div>
         <div>
           <dt class="text-vn-slate-light">NDA</dt>
-          <dd class="text-vn-slate">{{ tech.requiresNda ? 'Yes' : 'No' }}</dd>
+          <dd class="text-vn-slate">{{ state.tech.requiresNda ? 'Yes' : 'No' }}</dd>
         </div>
         <div>
           <dt class="text-vn-slate-light">Specifications</dt>
-          <dd class="mt-1 whitespace-pre-wrap text-vn-slate">{{ tech.specs || '—' }}</dd>
-        </div>
-        <div v-if="tech.customAttributes.length">
-          <dt class="text-vn-slate-light">Custom attributes</dt>
-          <dd class="mt-1">
-            <ul class="list-inside list-disc space-y-1 text-vn-slate">
-              <li v-for="(item, i) in tech.customAttributes" :key="i">
-                {{ item.key || '—' }}: {{ item.value || '—' }}
-              </li>
-            </ul>
-          </dd>
+          <dd class="mt-1 whitespace-pre-wrap text-vn-slate">{{ state.tech.specs || '—' }}</dd>
         </div>
       </dl>
     </div>
@@ -67,13 +57,9 @@
       <h3 class="text-sm font-semibold text-vn-navy">Commercial &amp; logistics</h3>
       <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt class="text-vn-slate-light">Quantity tiers</dt>
+          <dt class="text-vn-slate-light">Quantity</dt>
           <dd class="text-vn-slate">
-            {{
-              commercial.quantityTiers.filter((t) => t > 0).length
-                ? commercial.quantityTiers.filter((t) => t > 0).join(', ')
-                : '—'
-            }}
+            {{ state.commercial.quantity != null && state.commercial.quantity > 0 ? state.commercial.quantity : '—' }}
           </dd>
         </div>
         <div>
@@ -86,15 +72,15 @@
         </div>
         <div>
           <dt class="text-vn-slate-light">Sample</dt>
-          <dd class="text-vn-slate">{{ commercial.requiresSample ? 'Yes' : 'No' }}</dd>
+          <dd class="text-vn-slate">{{ state.commercial.requiresSample ? 'Yes' : 'No' }}</dd>
         </div>
         <div>
           <dt class="text-vn-slate-light">Destination</dt>
-          <dd class="text-vn-slate">{{ logistics.destination || '—' }}</dd>
+          <dd class="text-vn-slate">{{ state.logistics.destination || '—' }}</dd>
         </div>
         <div>
           <dt class="text-vn-slate-light">Incoterm</dt>
-          <dd class="text-vn-slate">{{ logistics.incoterm || '—' }}</dd>
+          <dd class="text-vn-slate">{{ state.logistics.incoterm || '—' }}</dd>
         </div>
       </dl>
     </div>
@@ -104,51 +90,48 @@
         label="Publish RFQ to Verified Network"
         icon="pi pi-send"
         size="large"
-        :loading="publishing"
+        :loading="isSubmitting"
         class="border-cyan-600 bg-cyan-600 text-white hover:border-cyan-700 hover:bg-cyan-700"
-        @click="emit('publish')"
+        @click="submitRfq"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{
-  publishing: boolean
-  showReviewErrors?: boolean
-}>()
-
-const emit = defineEmits<{
-  publish: []
-}>()
-
-const { identity, tech, commercial, logistics, canAdvance } = useRfqWizard()
+const { state, showReviewErrors, isSubmitting, validateStep, submitRfq } = useRfqWizard()
 
 const formattedPrice = computed(() => {
-  if (!commercial.targetPrice) return '—'
+  if (!state.value.commercial.targetPrice) return '—'
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(
-    commercial.targetPrice,
+    state.value.commercial.targetPrice,
   )
 })
 
 const formattedDeadline = computed(() => {
-  if (!commercial.deadline) return '—'
-  const d = commercial.deadline instanceof Date ? commercial.deadline : new Date(commercial.deadline)
-  return d.toLocaleDateString('de-DE', { year: 'numeric', month: 'short', day: 'numeric' })
+  const d = state.value.commercial.deadline
+  if (!d) return '—'
+  const date = d instanceof Date ? d : new Date(d as string)
+  return date.toLocaleDateString('de-DE', { year: 'numeric', month: 'short', day: 'numeric' })
 })
 
 const reviewIssues = computed(() => {
+  void state.value.identity.title
+  void state.value.tech.specs
+  void state.value.commercial.quantity
+  void state.value.logistics.destination
+
   const issues: string[] = []
-  if (!canAdvance(1)) {
+  if (!validateStep(1)) {
     issues.push('Step 1: title, category, and executive summary are required.')
   }
-  if (!canAdvance(2)) {
+  if (!validateStep(2)) {
     issues.push('Step 2: add files or technical specifications.')
   }
-  if (!canAdvance(3)) {
-    issues.push('Step 3: at least one quantity greater than zero and target price (EUR) are required.')
+  if (!validateStep(3)) {
+    issues.push('Step 3: quantity, target price (EUR), and valid commercial inputs are required.')
   }
-  if (!canAdvance(4)) {
+  if (!validateStep(4)) {
     issues.push('Step 4: destination country and incoterm are required.')
   }
   return issues

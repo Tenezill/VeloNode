@@ -67,4 +67,53 @@ body {
   .p-button {
     @apply transition-all duration-200 ease-in-out;
   }
+
+  /* Vendor market & dense B2B surfaces */
+  .p-card {
+    @apply overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm;
+  }
+
+  .p-card-header {
+    @apply border-b border-slate-100 bg-slate-50/90 px-4 py-3;
+  }
+
+  .p-card-body {
+    @apply bg-white;
+  }
+
+  .p-card-content {
+    @apply px-4 py-4;
+  }
+
+  .p-card-footer {
+    @apply border-t border-slate-100 bg-slate-50/50 px-4 py-3;
+  }
+
+  .p-panel {
+    @apply overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm;
+  }
+
+  .p-panel-header {
+    @apply border-b border-slate-100 bg-slate-50/90 px-4 py-3 text-sm font-semibold text-slate-800;
+  }
+
+  .p-panel-content {
+    @apply px-4 py-4;
+  }
+
+  .p-tag {
+    @apply inline-flex items-center gap-1 rounded-md border px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .p-tag.p-tag-info {
+    @apply border-cyan-200 bg-cyan-100 text-cyan-900;
+  }
+
+  .p-checkbox-box {
+    @apply flex h-4 w-4 shrink-0 items-center justify-center rounded border border-slate-300 bg-white text-cyan-600 shadow-sm;
+  }
+
+  .p-checkbox.p-checkbox-checked .p-checkbox-box {
+    @apply border-cyan-600 bg-cyan-600 text-white;
+  }
 }

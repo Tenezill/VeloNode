@@ -12,9 +12,12 @@
 
     <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
       <section class="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-        <Steps :model="stepItems" :active-step="activeIndex" readonly />
+        <!-- Steps root can paint a large hit target; keep it from intercepting clicks meant for fields below. -->
+        <!--<div class="pointer-events-none select-none">
+          <Steps :model="stepItems" :active-step="activeIndex" readonly />
+        </div>-->
 
-        <div class="mt-4 flex flex-wrap gap-2">
+        <div class="pointer-events-none mt-4 flex flex-wrap gap-2 select-none">
           <span
             v-for="(item, index) in stepItems"
             :key="item.label"
@@ -22,25 +25,30 @@
             :class="stepPillClass(index)"
           >
             <i v-if="isStepCompleted(index)" class="pi pi-check text-[10px]" />
-            <span>{{ index + 1 }}. {{ item.label }}</span>
+            <span>{{ index + 1 }}. {{ item.label }}</span>>
           </span>
         </div>
 
-        <div class="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6">
+        <div class="relative z-10 mt-6 rounded-2xl border border-slate-200/80 bg-white p-6 isolate">
           <h2 class="text-lg font-semibold text-vn-navy">{{ activeStepMeta.title }}</h2>
           <p class="mt-1 text-sm text-vn-slate">{{ activeStepMeta.description }}</p>
 
-          <div class="mt-5">
+          <div class="mt-5 min-h-[12rem]">
             <Step1Identity v-if="currentStep === 1" :show-errors="showErrors" />
             <Step2Tech v-else-if="currentStep === 2" :show-errors="showErrors" />
             <Step3Commercial v-else-if="currentStep === 3" :show-errors="showErrors" />
             <Step4Logistics v-else-if="currentStep === 4" :show-errors="showErrors" />
-            <Step5Review v-else :publishing="publishing" @publish="publishRfq" />
+            <Step5Review
+              v-else
+              :publishing="publishing"
+              :show-review-errors="showReviewErrors"
+              @publish="publishRfq"
+            />
           </div>
         </div>
 
-        <div class="sticky bottom-0 z-10 mt-6 border-t border-slate-200/70 bg-white/95 px-1 pt-4 backdrop-blur">
-          <div class="flex items-center justify-between">
+        <div class="relative z-20 mt-6 border-t border-slate-200/70 bg-white pt-4">
+          <div class="flex items-center justify-between gap-3">
             <Button
               label="Back"
               severity="secondary"
@@ -51,6 +59,7 @@
               v-if="currentStep < maxStep"
               label="Continue"
               icon="pi pi-arrow-right"
+              icon-pos="right"
               :disabled="publishing"
               @click="handleNext"
             />
@@ -81,8 +90,12 @@ definePageMeta({
 
 const publishing = ref(false)
 const showErrors = ref(false)
+const showReviewErrors = ref(false)
 const wizardRoot = ref<HTMLElement | null>(null)
 const toast = useToast()
+const router = useRouter()
+const { api } = useApi()
+
 const {
   currentStep,
   maxStep,
@@ -93,7 +106,10 @@ const {
   prevStep,
   canAdvance,
   isStepCompleted,
-} = useRfqWizard()
+  isWizardComplete,
+  toPayload,
+  resetWizard,
+} = provideRfqWizard()
 
 function handleNext() {
   if (!canAdvance(currentStep.value)) {
@@ -108,11 +124,13 @@ function handleNext() {
     return
   }
   showErrors.value = false
+  showReviewErrors.value = false
   nextStep()
 }
 
 function handlePrev() {
   showErrors.value = false
+  showReviewErrors.value = false
   prevStep()
 }
 
@@ -135,6 +153,22 @@ function isTextEntryElement(el: EventTarget | null) {
   if (!node) return false
   if (node.closest('textarea')) return true
   if (node.closest('[contenteditable="true"]')) return true
+  const input = node.closest('input')
+  if (input) {
+    const t = (input as HTMLInputElement).type
+    if (
+      t === 'text' ||
+      t === 'search' ||
+      t === 'email' ||
+      t === 'number' ||
+      t === 'tel' ||
+      t === 'url' ||
+      t === ''
+    ) {
+      return true
+    }
+  }
+  if (node.closest('.p-select-overlay') || node.closest('[data-pc-section="panel"]')) return true
   return false
 }
 
@@ -169,15 +203,46 @@ function onGlobalKeydown(event: KeyboardEvent) {
 
 async function publishRfq() {
   if (publishing.value) return
-  // For now we mock publish with a toast-only flow.
+
+  if (!isWizardComplete()) {
+    showReviewErrors.value = true
+    showErrors.value = true
+    toast.add({
+      severity: 'warn',
+      summary: 'RFQ incomplete',
+      detail: 'Fix the items listed above, or go back to the step that needs input.',
+      life: 5500,
+    })
+    focusFirstInvalidField()
+    return
+  }
+
+  showReviewErrors.value = false
   publishing.value = true
-  toast.add({
-    severity: 'success',
-    summary: 'RFQ ready to publish',
-    detail: 'In a real backend, this would now be sent to the verified vendor network.',
-    life: 4500,
-  })
-  publishing.value = false
+  try {
+    await api('/rfqs', {
+      method: 'POST',
+      body: toPayload(),
+      quiet: true,
+    })
+    toast.add({
+      severity: 'success',
+      summary: 'RFQ published',
+      detail: 'Your RFQ has been submitted to the API and is queued for vendor matching.',
+      life: 5000,
+    })
+    resetWizard()
+    await router.push('/dashboard/rfqs')
+  } catch {
+    toast.add({
+      severity: 'warn',
+      summary: 'Could not reach API',
+      detail: 'Saved locally for demo — check that the backend is running on your API base URL.',
+      life: 7000,
+    })
+  } finally {
+    publishing.value = false
+  }
 }
 
 onMounted(() => {

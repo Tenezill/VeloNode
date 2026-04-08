@@ -1,8 +1,9 @@
 <template>
   <div class="space-y-4">
     <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Destination Country</label>
+      <label class="mb-1 block text-sm font-medium text-vn-slate" for="destination">Destination country</label>
       <Select
+        id="destination"
         v-model="logistics.destination"
         :options="countries"
         option-label="label"
@@ -12,15 +13,15 @@
         placeholder="Select destination"
       />
       <small v-if="showErrors && !logistics.destination" class="mt-1 block text-red-500">
-        Destination country is required.
+        Destination is required.
       </small>
     </div>
 
     <div>
-      <label class="mb-2 block text-sm font-medium text-slate-700">Incoterm</label>
+      <label class="mb-2 block text-sm font-medium text-vn-slate">Incoterm</label>
       <SelectButton v-model="logistics.incoterm" :options="incoterms" option-label="label" option-value="value" />
       <small v-if="showErrors && !logistics.incoterm" class="mt-1 block text-red-500">
-        Incoterm is required.
+        Select EXW, FOB, or DDP.
       </small>
     </div>
   </div>

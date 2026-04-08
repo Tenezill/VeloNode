@@ -7,14 +7,20 @@
       Welcome back{{ auth.user?.companyName ? `, ${auth.user.companyName}` : '' }}
     </h1>
     <p class="mt-3 text-vn-slate">
-      RFQ tools and catalog discovery arrive in Phase 2. This route is protected by the buyer middleware.
+      RFQ tooling is active. Create a structured request and attach technical files for vendor matching.
     </p>
-    <Button class="mt-8" label="Sign out" severity="secondary" @click="signOut" />
+    <div class="mt-8 flex items-center gap-3">
+      <NuxtLink to="/dashboard/rfq/new">
+        <Button label="Create RFQ" />
+      </NuxtLink>
+      <Button label="Sign out" severity="secondary" @click="signOut" />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({
+  layout: 'buyer',
   middleware: ['buyer'],
 })
 

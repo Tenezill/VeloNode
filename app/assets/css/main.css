@@ -1,18 +1,24 @@
 @import 'primeicons/primeicons.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* PrimeVue + Tailwind v3: primevue layer sits between base and utilities (see nuxt primevue.cssLayerOrder). */
+@layer tailwind-base, primevue, tailwind-utilities;
 
-/**
- * Global base styles — professional B2B feel; component-level polish lands in Phase 2+.
- */
-html,
-body {
-  @apply bg-vn-ice text-vn-navy antialiased;
+@layer tailwind-base {
+  @tailwind base;
+
+  /**
+   * Global base styles — professional B2B feel; component-level polish lands in Phase 2+.
+   */
+  html,
+  body {
+    @apply bg-vn-ice text-vn-navy antialiased;
+  }
 }
 
-@layer components {
+@layer tailwind-utilities {
+  @tailwind components;
+
+  /* Global fallbacks / density tweaks — lives in utilities layer with components for sane cascade */
   /* Global fallbacks for PrimeVue inputs to ensure they never look broken */
   .p-inputtext,
   .p-textarea,
@@ -116,4 +122,6 @@ body {
   .p-checkbox.p-checkbox-checked .p-checkbox-box {
     @apply border-cyan-600 bg-cyan-600 text-white;
   }
+
+  @tailwind utilities;
 }

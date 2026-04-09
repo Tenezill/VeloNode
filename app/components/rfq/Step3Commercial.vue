@@ -1,75 +1,59 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-8 animate-fade-in">
     <div>
-      <div class="mb-2 flex items-center justify-between">
-        <label class="block text-sm font-medium text-slate-700">Required Quantity Tiers</label>
-        <Button label="Add Volume Tier" icon="pi pi-plus" size="small" severity="secondary" @click="addTier" />
-      </div>
-      <div class="space-y-2">
-        <div v-for="(tier, index) in payload.quantityTiers" :key="index" class="grid gap-2 sm:grid-cols-[1fr_auto]">
-          <InputNumber
-            v-model="payload.quantityTiers[index]"
-            :min="1"
-            :use-grouping="false"
-            class="w-full"
-            :invalid="showErrors && (!payload.quantityTiers[index] || payload.quantityTiers[index] <= 0)"
-          />
-          <Button icon="pi pi-trash" text severity="danger" @click="removeTier(index)" />
-        </div>
-      </div>
-      <small
-        v-if="showErrors && !payload.quantityTiers.some((tier) => tier > 0)"
-        class="mt-1 block text-red-500"
-      >
-        Add at least one valid volume tier.
-      </small>
+      <h2 class="text-2xl font-bold text-slate-800">Commercial terms</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Set volume, target pricing, timeline, and whether you need a sample run.
+      </p>
     </div>
 
-    <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Target Price per Unit</label>
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700" for="qty">Required quantity (units)</label>
       <InputNumber
-        v-model="payload.targetPricePerUnit"
+        id="qty"
+        v-model="state.commercial.quantity"
+        class="w-full"
+        :min="1"
+        :use-grouping="false"
+        placeholder="e.g. 10000"
+      />
+    </div>
+
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700" for="price">Target price (EUR / unit)</label>
+      <InputNumber
+        id="price"
+        v-model="state.commercial.targetPrice"
+        class="w-full"
         mode="currency"
         currency="EUR"
         locale="de-DE"
-        class="w-full"
-        :invalid="showErrors && !payload.targetPricePerUnit"
+        :min="0"
       />
-      <small v-if="showErrors && !payload.targetPricePerUnit" class="mt-1 block text-red-500">
-        Target unit price is required.
-      </small>
     </div>
 
-    <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Mass Production Deadline</label>
-      <DatePicker v-model="payload.massProductionDeadline" class="w-full" show-icon />
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700" for="deadline">Mass production deadline</label>
+      <DatePicker
+        id="deadline"
+        v-model="state.commercial.deadline"
+        class="w-full"
+        show-icon
+      />
     </div>
 
-    <div class="flex items-center gap-3">
-      <ToggleSwitch v-model="payload.sampleRequired" input-id="sampleRequired" />
-      <label for="sampleRequired" class="text-sm text-slate-700">Sample Required?</label>
+    <div class="flex flex-col space-y-2">
+      <span class="text-sm font-semibold text-slate-700">Sampling</span>
+      <div class="flex items-center gap-3">
+        <ToggleSwitch v-model="state.commercial.requiresSample" input-id="sample" />
+        <label class="text-sm text-slate-600" for="sample">Sample required</label>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-interface RfqPayload {
-  quantityTiers: number[]
-  targetPricePerUnit: number | null
-  massProductionDeadline: Date | null
-  sampleRequired: boolean
-}
+import { useRfqWizard } from '~/composables/useRfqWizard'
 
-const props = defineProps<{
-  payload: RfqPayload
-  showErrors?: boolean
-}>()
-
-function addTier() {
-  props.payload.quantityTiers.push(0)
-}
-
-function removeTier(index: number) {
-  props.payload.quantityTiers.splice(index, 1)
-}
+const { state } = useRfqWizard()
 </script>

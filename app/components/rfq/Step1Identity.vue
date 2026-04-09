@@ -1,77 +1,44 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-8 animate-fade-in">
     <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">RFQ Title</label>
+      <h2 class="text-2xl font-bold text-slate-800">Project Identity</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Define the core concept and category for your manufacturing request.
+      </p>
+    </div>
+
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700">RFQ Title</label>
       <InputText
-        v-model="payload.title"
+        v-model="state.identity.title"
         class="w-full"
-        :invalid="showErrors && !payload.title.trim()"
-        placeholder="e.g. OEM Motor Housing for EV Platform"
+        placeholder="e.g., Custom Aluminum Brackets Rev B"
       />
-      <small v-if="showErrors && !payload.title.trim()" class="mt-1 block text-red-500">RFQ title is required.</small>
     </div>
 
-    <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Category</label>
-      <Select
-        v-model="payload.category"
-        :options="categories"
-        option-label="label"
-        option-value="value"
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700">Category</label>
+      <InputText
+        v-model="state.identity.category"
         class="w-full"
-        :invalid="showErrors && !payload.category"
-        placeholder="Select a product category"
+        placeholder="e.g., CNC Machining, Injection Molding"
       />
-      <small v-if="showErrors && !payload.category" class="mt-1 block text-red-500">Category is required.</small>
     </div>
 
-    <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Executive Summary</label>
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700">Executive Summary</label>
       <Textarea
-        v-model="payload.summary"
+        v-model="state.identity.summary"
+        class="w-full resize-y"
         rows="5"
-        auto-resize
-        class="w-full"
-        :invalid="showErrors && !payload.summary.trim()"
-        placeholder="Describe intended use, target market, and quality expectations."
-      />
-      <small v-if="showErrors && !payload.summary.trim()" class="mt-1 block text-red-500">
-        Executive summary is required.
-      </small>
-    </div>
-
-    <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Primary Material(s)</label>
-      <MultiSelect
-        v-model="payload.materials"
-        :options="materials"
-        class="w-full"
-        display="chip"
-        placeholder="Select one or more materials"
+        placeholder="Describe the end-use of this product and any primary goals..."
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-interface RfqPayload {
-  title: string
-  category: string
-  summary: string
-  materials: string[]
-}
+import { useRfqWizard } from '~/composables/useRfqWizard'
 
-defineProps<{
-  payload: RfqPayload
-  showErrors?: boolean
-}>()
-
-const categories = [
-  { label: 'Electronics', value: 'electronics' },
-  { label: 'Automotive', value: 'automotive' },
-  { label: 'Industrial Hardware', value: 'industrial' },
-  { label: 'Consumer Goods', value: 'consumer' },
-]
-
-const materials = ['Aluminum', 'Steel', 'ABS', 'PC', 'Copper', 'Silicone', 'Brass']
+const { state } = useRfqWizard()
 </script>

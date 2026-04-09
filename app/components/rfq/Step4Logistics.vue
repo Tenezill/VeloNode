@@ -1,41 +1,42 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-8 animate-fade-in">
     <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Destination Country</label>
+      <h2 class="text-2xl font-bold text-slate-800">Logistics & delivery</h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Choose where goods should land and the commercial terms that apply.
+      </p>
+    </div>
+
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700" for="dest">Destination country</label>
       <Select
-        v-model="payload.destinationCountry"
+        id="dest"
+        v-model="state.logistics.destination"
+        class="w-full"
         :options="countries"
         option-label="label"
         option-value="value"
-        class="w-full"
-        :invalid="showErrors && !payload.destinationCountry"
-        placeholder="Select destination"
+        placeholder="Select country"
       />
-      <small v-if="showErrors && !payload.destinationCountry" class="mt-1 block text-red-500">
-        Destination country is required.
-      </small>
     </div>
 
-    <div>
-      <label class="mb-2 block text-sm font-medium text-slate-700">Incoterm</label>
-      <SelectButton v-model="payload.incoterm" :options="incoterms" option-label="label" option-value="value" />
-      <small v-if="showErrors && !payload.incoterm" class="mt-1 block text-red-500">
-        Incoterm is required.
-      </small>
+    <div class="flex flex-col space-y-2">
+      <label class="text-sm font-semibold text-slate-700">Incoterm</label>
+      <SelectButton
+        v-model="state.logistics.incoterm"
+        class="w-full"
+        :options="incoterms"
+        option-label="label"
+        option-value="value"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-interface RfqPayload {
-  destinationCountry: string
-  incoterm: 'EXW' | 'FOB' | 'DDP' | ''
-}
+import { useRfqWizard } from '~/composables/useRfqWizard'
 
-defineProps<{
-  payload: RfqPayload
-  showErrors?: boolean
-}>()
+const { state } = useRfqWizard()
 
 const countries = [
   { label: 'Germany', value: 'DE' },

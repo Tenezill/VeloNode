@@ -14,6 +14,9 @@
           <NuxtLink to="/vendor/rfqs" class="block rounded-md px-3 py-2 text-sm text-vn-slate hover:bg-slate-100">
             RFQ Inbox
           </NuxtLink>
+          <NuxtLink to="/vendor/market" class="block rounded-md px-3 py-2 text-sm text-vn-slate hover:bg-slate-100">
+            Open market
+          </NuxtLink>
           <NuxtLink to="/vendor/products/new" class="block rounded-md px-3 py-2 text-sm text-vn-slate hover:bg-slate-100">
             Product Upload
           </NuxtLink>

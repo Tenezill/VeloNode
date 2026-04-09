@@ -1,0 +1,30 @@
+# VelaNode Master Project Context
+You are an expert full-stack Vue/Nuxt developer and UI/UX engineer. We are building "VelaNode," a secure, premium B2B platform connecting verified European buyers with Chinese factories for custom OEM manufacturing.
+
+## Architecture
+- **Two-Sided Platform:** - **Buyer Portal (Public/EU Buyers):** Focused on discovery, trust, and structured RFQ submission. Spacious, "Enterprise SaaS" feel.
+  - **Vendor Dashboard (Chinese Factories):** Located under `/vendor/*`. Data-dense, ERP-style layout for managing RFQs, manual product ingestion, and API key generation.
+- **Backend Context:** A custom Node.js REST API emulating the Alibaba OpenAPI structure to allow drop-in factory integrations.
+- **Database Context:** PostgreSQL utilizing flexible `JSONB` columns for arbitrary product attributes. (Do NOT use Directus or Directus SDKs).
+
+## Tech Stack (Strict Requirements)
+- **Framework:** Nuxt 3 (Composition API, `<script setup>`, TypeScript).
+- **Styling:** Tailwind CSS (for layouts, grids, typography, spacing).
+- **UI Library:** PrimeVue (Unstyled mode using Tailwind CSS).
+- **State/API:** Pinia (for user auth/state) and native Nuxt `$fetch` (wrapped in a custom `useApi.ts` composable for API calls).
+- **Icons:** PrimeIcons or Nuxt Icon.
+
+## Design System & Vibe ("Enterprise Trust")
+- **Vibe:** Calm, structured, highly verified, and data-driven. Do not design anything that looks like a cheap wholesale or B2C ecommerce site.
+- **Backgrounds:** Soft Slate Gray (`bg-slate-50`) for app backgrounds, Crisp White (`bg-white` with `shadow-sm`) for data cards and forms.
+- **Text & Anchors:** Midnight Navy (`text-slate-900`) for primary text and main navigation bars to project corporate stability.
+- **Accents/Actions:** Electric Teal (`bg-cyan-500` hover `bg-cyan-600`) reserved exclusively for primary action buttons (e.g., "Start RFQ", "Publish").
+- **Semantic Colors:** Use rich greens for "Verified" badges and amber for "Pending" statuses.
+- **Rounding:** Keep it subtle (`rounded-md` or `rounded-lg`).
+
+## Coding Standards & Execution Rules
+- Write clean, highly modular, heavily commented TypeScript code.
+- Never build massive, single-file monolithic components. Extract repeatable UI elements and multi-step forms into `~/components/`.
+- For complex data displays (especially JSONB product attributes), rely heavily on PrimeVue DataTables.
+- Handle all API errors gracefully using PrimeVue Toast notifications.
+- If backend API endpoints are not yet available, write the Nuxt UI code using mocked JSON data structures that accurately reflect the expected schema.

@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import Aura from '@primeuix/themes/aura'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
 
@@ -16,10 +18,24 @@ export default defineNuxtConfig({
     '@nuxt/icon',
   ],
 
-  /** PrimeVue in unstyled mode — Tailwind provides layout and tokens via tailwindcss-primeui */
+  /**
+   * Styled mode + Aura preset: injects design tokens (--p-*) used by PrimeVue components and
+   * tailwindcss-primeui (bg-primary, surface-*, etc.). Unstyled mode skips theme injection and
+   * leaves components raw unless you use Volt or manual pass-through styling.
+   */
   primevue: {
     options: {
-      unstyled: true,
+      ripple: true,
+      theme: {
+        preset: Aura,
+        options: {
+          darkModeSelector: '.p-dark',
+          cssLayer: {
+            name: 'primevue',
+            order: 'tailwind-base, primevue, tailwind-utilities',
+          },
+        },
+      },
     },
   },
 

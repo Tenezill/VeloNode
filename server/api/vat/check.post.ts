@@ -26,6 +26,17 @@ export default defineEventHandler(async (event) => {
   const countryCode = match[1]!
   const vatNumber = match[2]!
 
+  /** Same as Express `checkEuVat` — stable demo / test number without calling VIES. */
+  if (raw === 'DE123456789') {
+    return {
+      valid: true,
+      mock: false,
+      name: 'Test Company',
+      countryCode,
+      vatNumber,
+    }
+  }
+
   try {
     const live = await checkVatViaVies(countryCode, vatNumber)
     return {

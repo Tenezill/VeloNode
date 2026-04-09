@@ -7,6 +7,13 @@ export interface VatCheckResponse {
   reason?: string
 }
 
+/** Matches backend `checkEuVat` test VAT — no network call (avoids VIES timeouts / fetch errors). */
+const TEST_VAT_NORMALIZED = 'DE123456789'
+
+function normalizeVat(raw: string): string {
+  return raw.replace(/\s+/g, '').toUpperCase()
+}
+
 /**
  * Debounced VAT checks against our Nitro `/api/vat/check` route (live VIES + mock fallback).
  * Keeps buyer registration from submitting before we have a positive validation signal.
@@ -33,9 +40,16 @@ export function useVatAsyncValidation(debounceMs = 450) {
     lastMessage.value = ''
     isMock.value = false
 
-    const trimmed = rawVat.trim().toUpperCase()
-    if (!trimmed) {
+    const normalized = normalizeVat(rawVat)
+    if (!normalized) {
       status.value = 'idle'
+      return
+    }
+
+    if (normalized === TEST_VAT_NORMALIZED) {
+      status.value = 'valid'
+      isMock.value = false
+      lastMessage.value = ''
       return
     }
 
@@ -44,7 +58,7 @@ export function useVatAsyncValidation(debounceMs = 450) {
       try {
         const res = await $fetch<VatCheckResponse>('/api/vat/check', {
           method: 'POST',
-          body: { vat: trimmed },
+          body: { vat: normalized },
         })
         isMock.value = Boolean(res.mock)
         lastMessage.value = res.message || ''
